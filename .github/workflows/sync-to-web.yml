@@ -1,0 +1,41 @@
+name: Sync Aetheris to provasek.xyz
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Aetheris
+        uses: actions/checkout@v4
+        with:
+          path: aetheris
+
+      - name: Checkout Web (provasek/web)
+        uses: actions/checkout@v4
+        with:
+          repository: provasek/web
+          token: ${{ secrets.WEB_SYNC_TOKEN }}
+          path: web
+
+      - name: Sync files to projects/aetheris
+        run: |
+          rm -rf web/projects/aetheris
+          mkdir -p web/projects/aetheris
+          cp -r aetheris/index.html aetheris/manifest.json aetheris/sw.js aetheris/assets aetheris/css aetheris/js web/projects/aetheris/
+
+      - name: Commit and push to provasek/web
+        working-directory: web
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add projects/aetheris
+          if git diff --staged --quiet; then
+            echo "Žádné změny k synchronizaci."
+          else
+            git commit -m "chore: sync Aetheris from provasek/aetheris"
+            git push
+          fi
